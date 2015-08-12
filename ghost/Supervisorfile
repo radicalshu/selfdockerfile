@@ -1,0 +1,9 @@
+[program:sshd]
+command=/usr/sbin/sshd -D
+autostart=true
+autorestart=true
+
+[program:ghost]
+command=npm start --production -d /var/www/ghost/
+autostart=true
+autorestart=true

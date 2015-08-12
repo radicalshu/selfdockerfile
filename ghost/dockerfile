@@ -1,0 +1,36 @@
+FROM centos:centos7
+MAINTAINER radicalshu weishu.ops@gmail.com
+
+ADD Supervisorfile  /src/Supervisorfile
+# setup sshd
+RUN yum install -y openssh-server openssh-clients  epel-release
+RUN echo 'root:87654312' | chpasswd
+RUN sed -i 's/UsePAM yes/UsePAM no/g' /etc/ssh/sshd_config
+
+## Suppress error message 'Could not load host key: ...'
+RUN /usr/bin/ssh-keygen -t rsa -f /etc/ssh/ssh_host_rsa_key -C '' -N ''
+RUN /usr/bin/ssh-keygen -t rsa -f /etc/ssh/ssh_host_dsa_key -C '' -N ''
+EXPOSE 22
+
+
+## install ghost
+RUN curl --silent --location https://rpm.nodesource.com/setup | bash -
+RUN yum -y install nodejs unzip
+RUN mkdir -p /var/www/ghost
+ADD files /var/www/ghost
+RUN unzip -uo /var/www/ghost/ghost.zip -d /var/www/ghost
+RUN cd /var/www/ghost && npm install --production
+ADD config.js /var/www/ghost/config.js
+ADD comments /src/comments
+RUN cat /src/comments >> /var/www/ghost/content/themes/casper/post.hbs
+RUN npm install inherits
+EXPOSE 2368
+
+
+# setup supervisor
+RUN yum install -y supervisor
+RUN cat /src/Supervisorfile >> /etc/supervisord.conf
+
+# add the VOLUME for download site
+
+CMD ["/usr/bin/supervisord", "-n", "-c", "/etc/supervisord.conf"] 
